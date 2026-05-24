@@ -1,14 +1,22 @@
 {
   "type": "voiceover",
-  "description": "Voiceover / narration prompt template",
-  "template": {
-    "voice_profile": "{gender}, {age_range}, {accent}",
-    "tone": "{emotional_tone}",
-    "pace": "{speed} words per minute",
-    "style": "{narration_style}",
-    "audience": "{target_audience}",
-    "medium": "{output_medium}",
-    "music_bed": "{background_music_instructions}"
-  },
-  "example": "Male voice, early-40s, neutral British accent. Authoritative yet approachable tone. Slow pace at 110 wpm. Documentary narration style. Target audience: general public aged 25–55. For broadcast TV. Subtle orchestral music bed at -20dB."
+  "description": "Professional voiceover / narration prompt template for broadcast, documentary, and streaming",
+  "dimensions": [
+    "voice_profile: gender, age range, accent/dialect",
+    "mic_technique: close-mic / mid / distant, breath control (natural / controlled / minimal)",
+    "room_treatment: dry studio / slight room / reverb tail (specify RT60 if relevant)",
+    "emotional_tone: the feeling the voice must convey (wonder, authority, intimacy, urgency…)",
+    "emotional_arc: how the tone evolves across the piece (e.g. opens with curiosity, builds to awe)",
+    "pace: exact WPM and rhythm feel (steady / accelerating / deliberate pauses)",
+    "delivery_nuances: inflection patterns, consonant treatment, sibilance, breath audibility",
+    "narration_style: documentary / corporate / intimate / epic / conversational",
+    "audience: who is listening and in what context",
+    "medium: broadcast TV / streaming / podcast / e-learning / trailer",
+    "music_bed: genre, instrumentation, level relative to voice (e.g. -18 dB under voice)",
+    "post_processing: EQ character (warm low-mids, air at 12kHz), compression style, stereo width"
+  ],
+  "examples": [
+    "Female voice, late-30s, neutral mid-Atlantic accent. Close-mic'd, controlled breath, dry studio treatment. Tone of quiet wonder that builds to reverent awe as the sequence progresses. Deliberate pace at 105 wpm with meaningful pauses after key revelations. Soft consonants, no sibilance harshness, barely audible inhales for intimacy. David Attenborough-school documentary narration — authoritative yet deeply personal. Audience: adults 25–55, broadcast on National Geographic HD. Subtle orchestral underscore: solo cello and sparse piano at -20 dB under voice, swelling to -14 dB at emotional peak. Post: gentle low-mid warmth at 250 Hz, air shelf at 12 kHz, slow-attack compression at 3:1.",
+    "Male voice, early-50s, received pronunciation British accent. Mid-distance mic placement, natural breath, slight room ambience (RT60 ~0.3s). Tone: measured authority with undercurrents of urgency. Steady 115 wpm, punchy consonants on scientific terms, falling cadence at sentence ends. Epic documentary style — think BBC Earth. Audience: general public, streaming platform. Cinematic orchestral bed: low brass and tremolo strings at -22 dB, rising 6 dB during climactic moments. Post: high-pass at 80 Hz, presence boost at 3 kHz, broadcast-standard limiting at -1 dBTP."
+  ]
 }

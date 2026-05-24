@@ -1,14 +1,20 @@
 {
   "type": "tts",
-  "description": "Text-to-Speech voice generation prompt template",
-  "template": {
-    "voice_profile": "{gender}, {age_range}, {accent}",
-    "tone": "{emotional_tone}",
-    "pace": "{speed} words per minute",
-    "style": "{delivery_style}",
-    "context": "{usage_context}",
-    "emphasis": "{key_words_to_emphasize}",
-    "pauses": "{pause_instructions}"
-  },
-  "example": "Female voice, mid-30s, neutral French accent. Warm and confident tone. Moderate pace at 130 wpm. Professional corporate delivery style. Used for e-learning introduction. Emphasize key terms. Natural pause after each section."
+  "description": "Professional TTS voice generation prompt template for synthetic voice models (ElevenLabs, Bark, etc.)",
+  "dimensions": [
+    "voice_profile: gender, age range, accent/dialect, vocal weight (light / medium / full)",
+    "mic_technique: close-mic / mid, breath audibility (silent / subtle / natural)",
+    "room_treatment: dry / slight room — TTS models respond to acoustic descriptors",
+    "emotional_tone: primary emotion the voice must carry",
+    "pace: exact WPM, rhythm feel, pause placement strategy",
+    "delivery_style: corporate / conversational / instructional / storytelling / energetic",
+    "emphasis_strategy: which word types to stress (nouns / verbs / numbers), rising vs falling inflection",
+    "sibilance_control: crisp / softened / de-essed",
+    "context: where and how the audio will be used (app UI, e-learning, IVR, podcast intro…)",
+    "post_processing: EQ character, compression, any spatial treatment"
+  ],
+  "examples": [
+    "Female voice, mid-30s, neutral French accent, medium vocal weight. Close-mic'd, breath nearly silent, dry studio. Warm confidence — the tone of a knowledgeable colleague, not a corporate robot. Steady 128 wpm, natural micro-pauses after commas, full stop pauses of ~0.6s. Stress falls on action verbs and key nouns; gentle rising inflection on questions. Soft sibilants, no harshness above 8 kHz. Used for e-learning module introductions on a SaaS platform. Post: low-mid warmth at 300 Hz (+1.5 dB), gentle de-essing at 7 kHz, 4:1 compression with 10ms attack.",
+    "Male voice, late-20s, neutral American accent, light-medium vocal weight. Close-mic'd, subtle natural breath, dry. Energetic and approachable — think startup product demo. Brisk 145 wpm with punchy delivery on feature names, deliberate 0.8s pause before key CTAs. Hard consonants on technical terms, crisp sibilants. Used for in-app onboarding tooltips. Post: high-pass at 100 Hz, presence boost at 2.5 kHz (+2 dB), fast-attack limiting."
+  ]
 }

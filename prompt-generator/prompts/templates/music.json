@@ -1,14 +1,21 @@
 {
   "type": "music",
-  "description": "Music generation prompt template",
-  "template": {
-    "genre": "{primary_genre}",
-    "mood": "{emotional_mood}",
-    "tempo": "{bpm} BPM",
-    "instruments": "{key_instruments}",
-    "structure": "{intro_duration}, {main_duration}, {outro_duration}",
-    "energy": "{energy_level}",
-    "reference": "{style_reference}"
-  },
-  "example": "Cinematic orchestral. Tense and suspenseful mood. 90 BPM. Strings, brass, and low percussion. 5s intro, 45s main theme, 10s fade outro. High energy build. Inspired by Hans Zimmer's Inception soundtrack."
+  "description": "Professional music generation prompt template for AI music models (MusicGen, AudioCraft, Suno, etc.)",
+  "dimensions": [
+    "genre_and_subgenre: be specific (e.g. 'neo-classical ambient' not just 'classical')",
+    "key_and_mode: tonal centre and mode (e.g. D minor, Lydian, pentatonic) if relevant",
+    "tempo: exact BPM and feel (e.g. '72 BPM, half-time feel')",
+    "time_signature: 4/4 / 3/4 / 6/8 / odd meter",
+    "instrumentation: list instruments with articulation (e.g. 'pizzicato cello', 'breathy flute', 'distorted Rhodes')",
+    "dynamic_arc: how energy and density evolve (e.g. 'sparse intro pp, builds to full ensemble ff at 1:30')",
+    "texture: sparse / layered / dense, stereo width, reverb character (intimate / large hall / infinite)",
+    "emotional_target: the precise feeling the music must create in the listener",
+    "structural_markers: intro / main theme / bridge / climax / outro with approximate durations",
+    "mix_reference_levels: e.g. 'bass at -6 dBFS, pads at -12 dBFS'",
+    "artist_or_soundtrack_reference: concrete anchor (e.g. 'Hans Zimmer — Interstellar OST', 'Nils Frahm — Says')"
+  ],
+  "examples": [
+    "Neo-classical ambient, D minor, Lydian inflections. 68 BPM, 4/4, half-time feel. Instrumentation: solo prepared piano (close-mic'd, slightly detuned), bowed cello sul ponticello, sparse sub-bass drone, high-frequency granular texture. Dynamic arc: opens pp with solo piano motif, cello enters at 0:20 pp, full texture builds to mp by 1:00, sustained mp plateau, gradual decrescendo to silence. Texture: sparse, wide stereo reverb (large hall, 3s tail), intimate piano in centre. Emotional target: melancholic wonder, the feeling of standing at the edge of the ocean at dusk. Structural: 20s intro, 2:30 main theme, 30s fade outro. Reference: Nils Frahm 'Says' meets Ólafur Arnalds 'Near Light'.",
+    "Cinematic orchestral action, E minor. 138 BPM, 4/4 with syncopated cross-rhythms. Instrumentation: low brass stabs (trombone + tuba), taiko drums with room reverb, aggressive ostinato strings (col legno), distorted electric cello, sub-bass hits on beat 1. Dynamic arc: cold open with single brass hit, builds relentlessly over 16 bars to full ensemble fortissimo, no release. Texture: dense, mono-compatible, punchy. Emotional target: visceral urgency, adrenaline. Structural: 4s cold open, 45s main cue, hard cut ending. Reference: Hans Zimmer 'Inception — Time' intro energy, Junkie XL 'Batman v Superman' brass palette."
+  ]
 }

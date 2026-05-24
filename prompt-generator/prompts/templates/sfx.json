@@ -1,14 +1,21 @@
 {
   "type": "sfx",
-  "description": "Sound effects generation prompt template",
-  "template": {
-    "sound_type": "{primary_sound_category}",
-    "environment": "{acoustic_environment}",
-    "intensity": "{intensity_level}",
-    "duration": "{duration_seconds} seconds",
-    "layers": "{sound_layers}",
-    "transition": "{fade_in_out_instructions}",
-    "context": "{usage_context}"
-  },
-  "example": "Mechanical door creak. Indoor stone corridor environment. Medium intensity. 2 seconds. Layered with subtle reverb and distant echo. Fade in 0.2s, no fade out. Used for horror game door interaction."
+  "description": "Professional sound effects prompt template for AI SFX models and sound design pipelines",
+  "dimensions": [
+    "source_material: the physical object or phenomenon producing the sound (be specific)",
+    "recording_environment: anechoic / small room / large hall / outdoor / underwater — affects reverb character",
+    "layering_strategy: describe each layer (e.g. 'sub-bass thud 60–80 Hz + mid-range crack 1–4 kHz + high transient 8–12 kHz')",
+    "stereo_image: mono / stereo width / binaural / surround panning",
+    "duration_and_envelope: total duration in ms or seconds, attack / decay / sustain / release shape",
+    "intensity_and_dynamics: peak level, dynamic range, whether it punches or sustains",
+    "pitch_and_tuning: fundamental pitch if tonal, pitch movement (rising / falling / stable)",
+    "texture: clean / gritty / metallic / organic / synthetic",
+    "processing: distortion type, reverb (room size, pre-delay, tail length), EQ shaping, pitch-shifting",
+    "narrative_function: what emotion or story beat this sound serves in context",
+    "context: game engine / film mix / podcast / UI / broadcast"
+  ],
+  "examples": [
+    "Massive underwater explosion, recorded in large reverberant tank environment. Layering: deep sub-bass implosion 40–80 Hz (dominant, 800ms sustain), mid-range bubble burst cluster 500 Hz–2 kHz (sharp 20ms attack, 300ms decay), high-frequency water spray transient 6–10 kHz (50ms, stereo wide). Total duration: 2.8 seconds. Envelope: instant attack, long exponential decay with underwater reverb tail (RT60 ~1.5s). Stereo: wide (sub in mono, mids and highs spread to ±60°). Pitch: sub layer tuned to C1, slight downward pitch bend over decay. Processing: heavy low-pass on reverb tail, subtle distortion on mid layer for grit. Narrative function: catastrophic destruction, visceral impact. Context: AAA game cinematic, 7.1 surround mix.",
+    "Organic wooden door creak, old castle interior. Single-layer: slow bow drawn across door hinge, fundamental ~180 Hz with rich harmonic series up to 3 kHz. Duration: 1.4 seconds. Envelope: 80ms attack (gradual bow pressure), sustained creak with slight pitch rise mid-way, 200ms natural decay. Stereo: mono source, slight room ambience (stone corridor, RT60 ~0.8s, pre-delay 15ms). Intensity: medium, peaks at -12 dBFS. Texture: organic, slightly metallic resonance. Processing: gentle high-pass at 60 Hz, room reverb at -18 dB relative to dry. Narrative function: dread and anticipation, signals entry into dangerous space. Context: horror game, placed in 3D audio engine."
+  ]
 }
