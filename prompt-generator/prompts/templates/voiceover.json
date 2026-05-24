@@ -1,0 +1,14 @@
+{
+  "type": "voiceover",
+  "description": "Voiceover / narration prompt template",
+  "template": {
+    "voice_profile": "{gender}, {age_range}, {accent}",
+    "tone": "{emotional_tone}",
+    "pace": "{speed} words per minute",
+    "style": "{narration_style}",
+    "audience": "{target_audience}",
+    "medium": "{output_medium}",
+    "music_bed": "{background_music_instructions}"
+  },
+  "example": "Male voice, early-40s, neutral British accent. Authoritative yet approachable tone. Slow pace at 110 wpm. Documentary narration style. Target audience: general public aged 25–55. For broadcast TV. Subtle orchestral music bed at -20dB."
+}

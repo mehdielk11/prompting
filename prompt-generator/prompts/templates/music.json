@@ -1,0 +1,14 @@
+{
+  "type": "music",
+  "description": "Music generation prompt template",
+  "template": {
+    "genre": "{primary_genre}",
+    "mood": "{emotional_mood}",
+    "tempo": "{bpm} BPM",
+    "instruments": "{key_instruments}",
+    "structure": "{intro_duration}, {main_duration}, {outro_duration}",
+    "energy": "{energy_level}",
+    "reference": "{style_reference}"
+  },
+  "example": "Cinematic orchestral. Tense and suspenseful mood. 90 BPM. Strings, brass, and low percussion. 5s intro, 45s main theme, 10s fade outro. High energy build. Inspired by Hans Zimmer's Inception soundtrack."
+}

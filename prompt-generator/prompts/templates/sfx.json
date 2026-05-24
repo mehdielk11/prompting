@@ -1,0 +1,14 @@
+{
+  "type": "sfx",
+  "description": "Sound effects generation prompt template",
+  "template": {
+    "sound_type": "{primary_sound_category}",
+    "environment": "{acoustic_environment}",
+    "intensity": "{intensity_level}",
+    "duration": "{duration_seconds} seconds",
+    "layers": "{sound_layers}",
+    "transition": "{fade_in_out_instructions}",
+    "context": "{usage_context}"
+  },
+  "example": "Mechanical door creak. Indoor stone corridor environment. Medium intensity. 2 seconds. Layered with subtle reverb and distant echo. Fade in 0.2s, no fade out. Used for horror game door interaction."
+}

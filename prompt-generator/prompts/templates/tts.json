@@ -1,0 +1,14 @@
+{
+  "type": "tts",
+  "description": "Text-to-Speech voice generation prompt template",
+  "template": {
+    "voice_profile": "{gender}, {age_range}, {accent}",
+    "tone": "{emotional_tone}",
+    "pace": "{speed} words per minute",
+    "style": "{delivery_style}",
+    "context": "{usage_context}",
+    "emphasis": "{key_words_to_emphasize}",
+    "pauses": "{pause_instructions}"
+  },
+  "example": "Female voice, mid-30s, neutral French accent. Warm and confident tone. Moderate pace at 130 wpm. Professional corporate delivery style. Used for e-learning introduction. Emphasize key terms. Natural pause after each section."
+}
