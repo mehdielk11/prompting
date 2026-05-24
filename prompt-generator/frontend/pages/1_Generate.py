@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json as _json
+from datetime import datetime, timezone
+
 import requests
 import streamlit as st
 
@@ -34,6 +37,12 @@ with st.form("generate_form"):
 
     submitted = st.form_submit_button("✨ Générer le Prompt", use_container_width=True)
 
+# Persist audio_type across reruns so popovers can read it after form submission
+if submitted:
+    st.session_state["audio_type"] = audio_type
+
+_audio_type: str = st.session_state.get("audio_type", "tts")
+
 # ---------------------------------------------------------------------------
 # Generation
 # ---------------------------------------------------------------------------
@@ -48,21 +57,48 @@ if submitted:
                     f"{API_BASE}/api/generate",
                     json={
                         "description": description,
-                        "type": audio_type,
+                        "type": _audio_type,
                         "tone": tone,
                         "duration": duration,
                     },
-                    timeout=30,
+                    timeout=60,
                 )
                 resp.raise_for_status()
                 data = resp.json()
                 st.session_state["last_generated"] = data
+                # Clear any pending optimize trigger from a previous run
+                st.session_state.pop("_run_optimize", None)
             except requests.exceptions.ConnectionError:
                 st.error("Impossible de joindre l'API. Vérifiez que le backend est démarré.")
                 st.stop()
             except requests.exceptions.HTTPError as e:
                 st.error(f"Erreur API ({e.response.status_code}) : {e.response.text}")
                 st.stop()
+
+# ---------------------------------------------------------------------------
+# Optimization — executed at top-level scope (never inside a popover/spinner)
+# ---------------------------------------------------------------------------
+
+if st.session_state.get("_run_optimize"):
+    _obj = st.session_state.pop("_run_optimize")
+    _prompt = st.session_state.get("last_generated", {}).get("prompt", "")
+    if _prompt:
+        with st.spinner("Optimisation en cours…"):
+            try:
+                r = requests.post(
+                    f"{API_BASE}/api/optimize",
+                    json={"raw_prompt": _prompt, "objective": _obj, "type": _audio_type},
+                    timeout=60,
+                )
+                r.raise_for_status()
+                opt = r.json()
+                st.session_state["last_generated"]["prompt"] = opt["optimized_prompt"]
+                st.session_state["last_generated"]["score"] = opt["score_after"]
+                st.session_state["_optimize_result"] = opt
+            except requests.exceptions.HTTPError as e:
+                st.session_state["_optimize_error"] = f"Erreur API ({e.response.status_code}) : {e.response.text}"
+            except Exception as e:
+                st.session_state["_optimize_error"] = str(e)
 
 # ---------------------------------------------------------------------------
 # Display result
@@ -81,18 +117,47 @@ if "last_generated" in st.session_state:
     st.markdown(f"**Score qualité :** :{score_color}[{score}/100]")
     st.progress(int(score) / 100)
 
-    with st.expander("💡 Explication des choix structurels"):
-        st.write(data.get("explanation", "—"))
+    # Show optimize feedback inline (above the buttons)
+    if "_optimize_result" in st.session_state:
+        opt_res = st.session_state.pop("_optimize_result")
+        delta = opt_res["score_after"] - opt_res["score_before"]
+        delta_str = f"+{delta:.1f}" if delta >= 0 else f"{delta:.1f}"
+        color = "green" if delta > 0 else "orange" if delta == 0 else "red"
+        st.success(
+            f"✅ Prompt optimisé — Score : **{opt_res['score_before']}** → "
+            f"**:{color}[{opt_res['score_after']}]** ({delta_str})"
+        )
 
-    with st.expander("🔀 Variantes alternatives"):
-        for i, variant in enumerate(data.get("variants", []), 1):
-            st.markdown(f"**Variante {i}**")
-            st.text_area(f"variant_{i}", value=variant, height=100, label_visibility="collapsed")
+        # Dimension breakdown
+        db = opt_res.get("dimensions_before")
+        da = opt_res.get("dimensions_after")
+        if db and da:
+            with st.expander("📊 Détail des dimensions avant / après"):
+                dim_labels = {
+                    "clarity": "Clarté",
+                    "specificity": "Spécificité",
+                    "structure": "Structure",
+                    "relevance": "Pertinence",
+                    "creativity": "Créativité",
+                }
+                cols = st.columns(5)
+                for i, (key, label) in enumerate(dim_labels.items()):
+                    before_val = db[key] if isinstance(db, dict) else getattr(db, key)
+                    after_val = da[key] if isinstance(da, dict) else getattr(da, key)
+                    d = after_val - before_val
+                    cols[i].metric(label, f"{after_val:.0f}", f"{d:+.0f}")
 
-    st.divider()
+        if opt_res.get("changes"):
+            with st.expander("📋 Modifications apportées"):
+                for change in opt_res["changes"]:
+                    st.markdown(f"- {change}")
+
+    if "_optimize_error" in st.session_state:
+        st.error(st.session_state.pop("_optimize_error"))
+
     col_save, col_opt, col_exp = st.columns(3)
 
-    # Save to library
+    # --- Save to library ---
     with col_save:
         with st.popover("💾 Sauvegarder"):
             save_title = st.text_input("Titre", value="Mon prompt audio")
@@ -105,7 +170,7 @@ if "last_generated" in st.session_state:
                         json={
                             "title": save_title,
                             "content": data["prompt"],
-                            "type": audio_type,
+                            "type": _audio_type,
                             "tags": tags,
                             "score": data.get("score"),
                         },
@@ -116,37 +181,24 @@ if "last_generated" in st.session_state:
                 except Exception as e:
                     st.error(f"Erreur : {e}")
 
-    # Optimise
+    # --- Optimise ---
     with col_opt:
         with st.popover("🔄 Optimiser"):
-            objective = st.selectbox("Objectif", ["clarity", "precision", "creativity", "technical"])
-            if st.button("Lancer l'optimisation"):
-                with st.spinner("Optimisation…"):
-                    try:
-                        r = requests.post(
-                            f"{API_BASE}/api/optimize",
-                            json={"raw_prompt": data["prompt"], "objective": objective, "type": audio_type},
-                            timeout=30,
-                        )
-                        r.raise_for_status()
-                        opt = r.json()
-                        st.session_state["last_generated"]["prompt"] = opt["optimized_prompt"]
-                        st.success(
-                            f"Score : {opt['score_before']} → {opt['score_after']}"
-                        )
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erreur : {e}")
+            objective = st.selectbox(
+                "Objectif",
+                ["clarity", "precision", "creativity", "technical"],
+                key="opt_objective",
+            )
+            if st.button("Lancer l'optimisation", key="btn_optimize"):
+                # Store the trigger in session_state — actual API call runs at top-level on next rerun
+                st.session_state["_run_optimize"] = objective
+                st.rerun()
 
-    # Export
+    # --- Export ---
     with col_exp:
         with st.popover("📤 Exporter"):
-            fmt = st.selectbox("Format", ["json", "markdown"])
-            if st.button("Télécharger"):
-                # Build the export payload locally — no need to save to library first
-                from datetime import datetime, timezone
-                import json as _json
-
+            fmt = st.selectbox("Format", ["json", "markdown"], key="export_fmt")
+            if st.button("Télécharger", key="btn_export"):
                 prompt_content = data["prompt"]
                 if fmt == "json":
                     payload = {
@@ -156,7 +208,7 @@ if "last_generated" in st.session_state:
                                 "id": None,
                                 "title": "Prompt généré",
                                 "content": prompt_content,
-                                "type": audio_type,
+                                "type": _audio_type,
                                 "score": data.get("score"),
                                 "tags": [],
                                 "created_at": datetime.now(timezone.utc).isoformat(),
@@ -173,7 +225,7 @@ if "last_generated" in st.session_state:
                         f"# Bibliothèque de Prompts Audio\n"
                         f"**Exporté le** : {today}\n\n---\n\n"
                         f"## Prompt généré\n"
-                        f"**Type** : {audio_type} | **Score** : {score_str} | **Tags** : \n\n"
+                        f"**Type** : {_audio_type} | **Score** : {score_str} | **Tags** : \n\n"
                         f"{prompt_content}\n"
                     )
                     file_bytes = md.encode("utf-8")
@@ -185,4 +237,16 @@ if "last_generated" in st.session_state:
                     data=file_bytes,
                     file_name=f"prompt_export.{ext}",
                     mime=mime,
+                    key="dl_export",
                 )
+
+    st.divider()
+
+    with st.expander("💡 Explication des choix structurels"):
+        st.write(data.get("explanation", "—"))
+
+    with st.expander("🔀 Variantes alternatives"):
+        for i, variant in enumerate(data.get("variants", []), 1):
+            st.markdown(f"**Variante {i}**")
+            st.text_area(f"variant_{i}", value=variant, height=100, label_visibility="collapsed")
+

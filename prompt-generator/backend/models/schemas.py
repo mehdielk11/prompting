@@ -95,17 +95,21 @@ class OptimizeResponse(BaseModel):
     """Output of prompt optimisation."""
 
     optimized_prompt: str
-    changes: list[str] = Field(..., description="List of improvements made.")
+    changes: list[str] = Field(..., description="Actual diff-derived list of improvements made.")
     score_before: float = Field(..., ge=0, le=100)
     score_after: float = Field(..., ge=0, le=100)
+    dimensions_before: DimensionScores | None = Field(default=None, description="Per-dimension scores before optimisation.")
+    dimensions_after: DimensionScores | None = Field(default=None, description="Per-dimension scores after optimisation.")
 
     model_config = {
         "json_schema_extra": {
             "example": {
                 "optimized_prompt": "Female voice, late-20s, warm and calm tone...",
-                "changes": ["Added voice age range", "Specified pace"],
+                "changes": ["Added voice age range", "Specified pace at 115 wpm"],
                 "score_before": 45.0,
                 "score_after": 78.0,
+                "dimensions_before": {"clarity": 50.0, "specificity": 40.0, "structure": 45.0, "relevance": 50.0, "creativity": 30.0},
+                "dimensions_after": {"clarity": 80.0, "specificity": 75.0, "structure": 78.0, "relevance": 80.0, "creativity": 70.0},
             }
         }
     }
