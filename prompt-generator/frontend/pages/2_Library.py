@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json as _json
+from datetime import datetime, timezone
+
 import requests
 import streamlit as st
 
@@ -16,7 +19,12 @@ st.title("📚 Bibliothèque de Prompts")
 # ---------------------------------------------------------------------------
 
 
-def fetch_prompts(query: str = "", page: int = 1, type_filter: str = "", min_score: float | None = None) -> dict:
+def fetch_prompts(
+    query: str = "",
+    page: int = 1,
+    type_filter: str = "",
+    min_score: float | None = None,
+) -> dict:
     """Fetch prompts from the API (search or list)."""
     try:
         if query:
@@ -42,6 +50,53 @@ def fetch_prompts(query: str = "", page: int = 1, type_filter: str = "", min_sco
         return {"items": [], "total": 0, "page": 1, "page_size": 12}
 
 
+def _build_json_bytes(prompt: dict) -> bytes:
+    """Serialize a single prompt to the standard JSON export format."""
+    payload = {
+        "export_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "prompts": [
+            {
+                "id": prompt["id"],
+                "title": prompt["title"],
+                "content": prompt["content"],
+                "type": prompt["type"],
+                "score": prompt.get("score"),
+                "tags": prompt.get("tags", []),
+                "created_at": prompt.get("created_at"),
+            }
+        ],
+    }
+    return _json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+
+
+def _build_bulk_json_bytes(ids: list[int]) -> bytes | None:
+    """Fetch and serialize multiple prompts to JSON export format."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/api/export",
+            json={"ids": ids, "format": "json"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.content
+    except Exception:
+        return None
+
+
+def _build_bulk_md_bytes(ids: list[int]) -> bytes | None:
+    """Fetch and serialize multiple prompts to Markdown export format."""
+    try:
+        r = requests.post(
+            f"{API_BASE}/api/export",
+            json={"ids": ids, "format": "markdown"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.content
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Filters
 # ---------------------------------------------------------------------------
@@ -50,7 +105,11 @@ col_search, col_type, col_score = st.columns([3, 1, 1])
 with col_search:
     search_query = st.text_input("🔍 Rechercher", placeholder="Titre ou contenu…")
 with col_type:
-    type_filter = st.selectbox("Type", ["", "tts", "music", "sfx", "voiceover"], format_func=lambda x: x or "Tous")
+    type_filter = st.selectbox(
+        "Type",
+        ["", "tts", "music", "sfx", "voiceover"],
+        format_func=lambda x: x or "Tous",
+    )
 with col_score:
     min_score = st.number_input("Score min", min_value=0, max_value=100, value=0, step=5)
 
@@ -67,12 +126,12 @@ data = fetch_prompts(
 items = data.get("items", [])
 total = data.get("total", 0)
 page_size = data.get("page_size", 12)
-total_pages = max(1, -(-total // page_size))  # ceiling division
+total_pages = max(1, -(-total // page_size))
 
 st.caption(f"{total} prompt(s) trouvé(s)")
 
 # ---------------------------------------------------------------------------
-# Bulk export selection
+# Bulk export — download button rendered eagerly, no intermediate click
 # ---------------------------------------------------------------------------
 
 if "selected_ids" not in st.session_state:
@@ -86,22 +145,30 @@ if items:
         with col_fmt:
             bulk_fmt = st.selectbox("Format", ["json", "markdown"], key="bulk_fmt")
         with col_btn:
-            if st.button("Exporter la sélection") and st.session_state["selected_ids"]:
-                try:
-                    r = requests.post(
-                        f"{API_BASE}/api/export",
-                        json={"ids": list(st.session_state["selected_ids"]), "format": bulk_fmt},
-                        timeout=15,
-                    )
-                    r.raise_for_status()
-                    ext = "json" if bulk_fmt == "json" else "md"
+            selected = list(st.session_state["selected_ids"])
+            if selected:
+                # Build bytes eagerly so download_button triggers instantly
+                if bulk_fmt == "json":
+                    bulk_bytes = _build_bulk_json_bytes(selected)
+                    bulk_mime = "application/json"
+                    bulk_ext = "json"
+                else:
+                    bulk_bytes = _build_bulk_md_bytes(selected)
+                    bulk_mime = "text/markdown"
+                    bulk_ext = "md"
+
+                if bulk_bytes:
                     st.download_button(
-                        label=f"📥 Télécharger .{ext}",
-                        data=r.content,
-                        file_name=f"bulk_export.{ext}",
+                        label=f"📥 Télécharger .{bulk_ext}",
+                        data=bulk_bytes,
+                        file_name=f"bulk_export.{bulk_ext}",
+                        mime=bulk_mime,
+                        key="bulk_dl",
                     )
-                except Exception as e:
-                    st.error(f"Erreur export : {e}")
+                else:
+                    st.error("Erreur lors de la préparation de l'export.")
+            else:
+                st.button("📥 Télécharger", disabled=True, key="bulk_dl_disabled")
 
 # ---------------------------------------------------------------------------
 # Prompt cards grid
@@ -114,10 +181,11 @@ else:
     for idx, prompt in enumerate(items):
         with cols[idx % 3]:
             score = prompt.get("score")
-            score_badge = f"🟢 {score:.0f}/100" if score and score >= 75 else (
-                f"🟡 {score:.0f}/100" if score and score >= 50 else (
-                    f"🔴 {score:.0f}/100" if score else "⚪ N/A"
-                )
+            score_badge = (
+                f"🟢 {score:.0f}/100" if score and score >= 75
+                else f"🟡 {score:.0f}/100" if score and score >= 50
+                else f"🔴 {score:.0f}/100" if score
+                else "⚪ N/A"
             )
             tags_str = " ".join(f"`{t}`" for t in prompt.get("tags", []))
 
@@ -150,37 +218,36 @@ else:
                 with btn_col1:
                     if st.button("📋", key=f"dup_{prompt['id']}", help="Dupliquer"):
                         try:
-                            r = requests.post(f"{API_BASE}/api/library/{prompt['id']}/duplicate", timeout=10)
+                            r = requests.post(
+                                f"{API_BASE}/api/library/{prompt['id']}/duplicate",
+                                timeout=10,
+                            )
                             r.raise_for_status()
                             st.success("Dupliqué ✓")
                             st.rerun()
                         except Exception as e:
                             st.error(str(e))
 
-                # Export single
+                # Export single — download button rendered directly, no intermediate click
                 with btn_col2:
-                    if st.button("📤", key=f"exp_{prompt['id']}", help="Exporter"):
-                        try:
-                            r = requests.post(
-                                f"{API_BASE}/api/export",
-                                json={"ids": [prompt["id"]], "format": "json"},
-                                timeout=10,
-                            )
-                            r.raise_for_status()
-                            st.download_button(
-                                "📥",
-                                data=r.content,
-                                file_name=f"prompt_{prompt['id']}.json",
-                                key=f"dl_{prompt['id']}",
-                            )
-                        except Exception as e:
-                            st.error(str(e))
+                    export_bytes = _build_json_bytes(prompt)
+                    st.download_button(
+                        label="📤",
+                        data=export_bytes,
+                        file_name=f"prompt_{prompt['id']}.json",
+                        mime="application/json",
+                        key=f"dl_{prompt['id']}",
+                        help="Exporter en JSON",
+                    )
 
                 # Delete
                 with btn_col3:
                     if st.button("🗑️", key=f"del_{prompt['id']}", help="Supprimer"):
                         try:
-                            r = requests.delete(f"{API_BASE}/api/library/{prompt['id']}", timeout=10)
+                            r = requests.delete(
+                                f"{API_BASE}/api/library/{prompt['id']}",
+                                timeout=10,
+                            )
                             r.raise_for_status()
                             st.success("Supprimé ✓")
                             st.rerun()

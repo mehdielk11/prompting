@@ -198,47 +198,49 @@ if "last_generated" in st.session_state:
     with col_exp:
         with st.popover("📤 Exporter"):
             fmt = st.selectbox("Format", ["json", "markdown"], key="export_fmt")
-            if st.button("Télécharger", key="btn_export"):
-                prompt_content = data["prompt"]
-                if fmt == "json":
-                    payload = {
-                        "export_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                        "prompts": [
-                            {
-                                "id": None,
-                                "title": "Prompt généré",
-                                "content": prompt_content,
-                                "type": _audio_type,
-                                "score": data.get("score"),
-                                "tags": [],
-                                "created_at": datetime.now(timezone.utc).isoformat(),
-                            }
-                        ],
-                    }
-                    file_bytes = _json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
-                    mime = "application/json"
-                    ext = "json"
-                else:
-                    today = datetime.now(timezone.utc).strftime("%d %B %Y")
-                    score_str = f"{data['score']}/100" if data.get("score") is not None else "N/A"
-                    md = (
-                        f"# Bibliothèque de Prompts Audio\n"
-                        f"**Exporté le** : {today}\n\n---\n\n"
-                        f"## Prompt généré\n"
-                        f"**Type** : {_audio_type} | **Score** : {score_str} | **Tags** : \n\n"
-                        f"{prompt_content}\n"
-                    )
-                    file_bytes = md.encode("utf-8")
-                    mime = "text/markdown"
-                    ext = "md"
 
-                st.download_button(
-                    label=f"📥 Télécharger .{ext}",
-                    data=file_bytes,
-                    file_name=f"prompt_export.{ext}",
-                    mime=mime,
-                    key="dl_export",
+            # Build file content eagerly so download_button triggers instantly
+            prompt_content = data["prompt"]
+            if fmt == "json":
+                payload = {
+                    "export_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "prompts": [
+                        {
+                            "id": None,
+                            "title": "Prompt généré",
+                            "content": prompt_content,
+                            "type": _audio_type,
+                            "score": data.get("score"),
+                            "tags": [],
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ],
+                }
+                file_bytes = _json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+                mime = "application/json"
+                filename = "prompt_export.json"
+            else:
+                today = datetime.now(timezone.utc).strftime("%d %B %Y")
+                score_str = f"{data['score']}/100" if data.get("score") is not None else "N/A"
+                md = (
+                    f"# Bibliothèque de Prompts Audio\n"
+                    f"**Exporté le** : {today}\n\n---\n\n"
+                    f"## Prompt généré\n"
+                    f"**Type** : {_audio_type} | **Score** : {score_str} | **Tags** : \n\n"
+                    f"{prompt_content}\n"
                 )
+                file_bytes = md.encode("utf-8")
+                mime = "text/markdown"
+                filename = "prompt_export.md"
+
+            st.download_button(
+                label="📥 Télécharger",
+                data=file_bytes,
+                file_name=filename,
+                mime=mime,
+                key="dl_export",
+                use_container_width=True,
+            )
 
     st.divider()
 
