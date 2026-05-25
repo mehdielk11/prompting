@@ -102,6 +102,75 @@ def _fetch_bulk_export(ids_tuple: tuple[int, ...], fmt: str) -> bytes | None:
         return None
 
 
+@st.cache_data(ttl=10, show_spinner=False)
+def _fetch_all_prompts() -> tuple:
+    """Fetch every prompt across all pages, cached. Used for instant select-all & local export."""
+    try:
+        r = requests.get(
+            f"{API_BASE}/api/library",
+            params={"page": 1, "page_size": 9999},
+            timeout=15,
+        )
+        r.raise_for_status()
+        # Return as a tuple of frozen dicts (cache-friendly) — but we just freeze top level
+        return tuple(r.json().get("items", []))
+    except Exception:
+        return tuple()
+
+
+def _fetch_all_prompt_ids() -> tuple:
+    """IDs of every prompt across all pages — derived from the cached prompts fetch."""
+    return tuple(p["id"] for p in _fetch_all_prompts())
+
+
+def _build_export_bytes(ids: tuple, fmt: str) -> bytes:
+    """Build export payload locally from cached prompts — no API call needed."""
+    id_set = set(ids)
+    prompts = [p for p in _fetch_all_prompts() if p["id"] in id_set]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    if fmt == "json":
+        payload = {
+            "export_date": today,
+            "prompts": [
+                {
+                    "id": p["id"],
+                    "title": p["title"],
+                    "content": p["content"],
+                    "type": p["type"],
+                    "score": p.get("score"),
+                    "tags": p.get("tags", []),
+                    "created_at": p.get("created_at"),
+                }
+                for p in prompts
+            ],
+        }
+        return _json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+
+    # Markdown
+    today_long = datetime.now(timezone.utc).strftime("%d %B %Y")
+    parts = [
+        "# Bibliothèque de Prompts Audio",
+        f"**Exporté le** : {today_long}",
+        "",
+        "---",
+        "",
+    ]
+    for p in prompts:
+        score_str = f"{p['score']}/100" if p.get("score") is not None else "N/A"
+        tags_str = ", ".join(p.get("tags", [])) or "—"
+        parts.extend([
+            f"## {p['title']}",
+            f"**Type** : {p['type']} | **Score** : {score_str} | **Tags** : {tags_str}",
+            "",
+            p["content"],
+            "",
+            "---",
+            "",
+        ])
+    return "\n".join(parts).encode("utf-8")
+
+
 # Safe import for fragment
 if hasattr(st, "fragment"):
     fragment_decorator = st.fragment
@@ -119,6 +188,25 @@ def toggle_selection(pid: int | str):
             st.session_state["selected_ids"].add(pid)
         else:
             st.session_state["selected_ids"].discard(pid)
+
+
+def select_all_callback(visible_ids: list):
+    """Callback fired BEFORE rerun — selects all prompts across every page."""
+    all_ids = set(_fetch_all_prompt_ids())
+    if not all_ids:
+        # Fallback: select only currently visible items
+        all_ids = set(visible_ids)
+    st.session_state["selected_ids"] = all_ids
+    # Sync individual checkbox widget keys for visible items
+    for pid in visible_ids:
+        st.session_state[f"sel_{pid}"] = True
+
+
+def deselect_all_callback(visible_ids: list):
+    """Callback fired BEFORE rerun — clears the entire selection."""
+    st.session_state["selected_ids"] = set()
+    for pid in visible_ids:
+        st.session_state[f"sel_{pid}"] = False
 
 
 def set_export_toast():
@@ -207,6 +295,8 @@ def library_content_fragment():
             if p_idx is not None:
                 items_list[p_idx] = new_prompt
                 st.toast("✅ Prompt dupliqué avec succès !")
+            # Invalidate the all-prompts cache so select-all sees the new item
+            _fetch_all_prompts.clear()
         except Exception as e:
             # Cleanup placeholder on error
             p_id = f"temp_dup_{pending_dup_id}"
@@ -220,10 +310,39 @@ def library_content_fragment():
     if "selected_ids" not in st.session_state:
         st.session_state["selected_ids"] = set()
 
-    # Toolbar row: result count on the left, export button on the right
-    count_col, fmt_col, export_col = st.columns([3, 1, 1])
+    # Pre-warm the all-prompts cache so the "select all" button click is instant
+    # (the on_click callback otherwise blocks on a synchronous HTTP request).
+    _fetch_all_prompts()
+
+    # Toolbar row: result count + select all on the left, export button on the right
+    count_col, sel_all_col, fmt_col, export_col = st.columns([2, 1.5, 1, 1])
     with count_col:
         st.caption(f"{total} prompt(s) trouvé(s)")
+
+    # Select all / deselect all button
+    with sel_all_col:
+        visible_ids = [p["id"] for p in items if not str(p["id"]).startswith("temp_")]
+        # We consider "all selected" if all visible items are selected
+        all_visible_selected = bool(visible_ids) and set(visible_ids).issubset(
+            st.session_state["selected_ids"]
+        )
+
+        if all_visible_selected:
+            st.button(
+                "✕ Tout désélectionner",
+                key="deselect_all",
+                use_container_width=True,
+                on_click=deselect_all_callback,
+                args=(visible_ids,),
+            )
+        else:
+            st.button(
+                "☑ Sélectionner tout",
+                key="select_all",
+                use_container_width=True,
+                on_click=select_all_callback,
+                args=(visible_ids,),
+            )
 
     if items:
         with fmt_col:
@@ -236,12 +355,8 @@ def library_content_fragment():
         with export_col:
             selected = sorted(st.session_state["selected_ids"])
             n = len(selected)
-            export_key = (tuple(selected), bulk_fmt)
 
             if not selected:
-                # Clear stale cached bytes when nothing is selected
-                st.session_state.pop("_export_bytes", None)
-                st.session_state.pop("_export_key", None)
                 st.button(
                     "📤 Exporter",
                     disabled=True,
@@ -249,35 +364,28 @@ def library_content_fragment():
                     use_container_width=True,
                     help="Sélectionnez des prompts pour les exporter",
                 )
-            elif (
-                st.session_state.get("_export_key") == export_key
-                and st.session_state.get("_export_bytes")
-            ):
-                # Bytes already prepared for this exact selection+format → download
-                ext = "json" if bulk_fmt == "json" else "md"
-                mime = "application/json" if bulk_fmt == "json" else "text/markdown"
-                st.download_button(
-                    label=f"📥 Télécharger ({n})",
-                    data=st.session_state["_export_bytes"],
-                    file_name=f"export.{ext}",
-                    mime=mime,
-                    key="bulk_dl",
-                    use_container_width=True,
-                )
             else:
-                # Selection changed or first time — fetch only on explicit click
-                if st.button(
-                    f"📤 Exporter ({n})",
-                    key="bulk_prepare",
-                    use_container_width=True,
-                ):
-                    bulk_bytes = _fetch_bulk_export(tuple(selected), bulk_fmt)
-                    if bulk_bytes:
-                        st.session_state["_export_key"] = export_key
-                        st.session_state["_export_bytes"] = bulk_bytes
-                        st.rerun()
-                    else:
-                        st.error("Erreur lors de la préparation de l'export.")
+                # Build export bytes locally from cached data — no API call, instant format switch
+                bulk_bytes = _build_export_bytes(tuple(selected), bulk_fmt)
+                if bulk_bytes:
+                    ext = "json" if bulk_fmt == "json" else "md"
+                    mime = "application/json" if bulk_fmt == "json" else "text/markdown"
+                    st.download_button(
+                        label=f"📤 Exporter ({n})",
+                        data=bulk_bytes,
+                        file_name=f"export.{ext}",
+                        mime=mime,
+                        key="bulk_dl",
+                        use_container_width=True,
+                    )
+                else:
+                    st.button(
+                        f"📤 Exporter ({n})",
+                        disabled=True,
+                        key="bulk_dl_err",
+                        use_container_width=True,
+                        help="Erreur lors de la préparation de l'export",
+                    )
 
     # ---------------------------------------------------------------------------
     # Prompt cards grid
@@ -435,6 +543,9 @@ def library_content_fragment():
                                         r = requests.delete(f"{API_BASE}/api/library/{pid}", timeout=10)
                                         r.raise_for_status()
                                         st.toast("✅ Prompt supprimé !")
+                                        # Invalidate the all-prompts cache & remove from selection
+                                        _fetch_all_prompts.clear()
+                                        st.session_state["selected_ids"].discard(pid)
                                     except Exception as e:
                                         st.session_state["cached_prompts"]["items"].insert(item_idx, item_to_delete)
                                         st.session_state["cached_prompts"]["total"] += 1

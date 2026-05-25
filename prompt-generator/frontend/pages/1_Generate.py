@@ -158,7 +158,50 @@ if "last_generated" in st.session_state:
     # Display prompt as a beautiful read-only block of code
     st.markdown('<div style="margin: 20px 0 8px 0; font-size: 0.9rem; font-weight: 600; color: var(--text-sec)">Prompt final optimisé :</div>', unsafe_allow_html=True)
     st.markdown(prompt_display(data["prompt"]), unsafe_allow_html=True)
-    st.caption("Double-cliquez pour sélectionner tout le texte ou utilisez les options d'export ci-dessous.")
+
+    # Copy button
+    import streamlit.components.v1 as components
+    _prompt_escaped = data["prompt"].replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$")
+    components.html(
+        f"""
+        <button id="copy-btn" onclick="copyPrompt()" style="
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: #94a3b8;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+        ">
+            <span id="copy-icon">📋</span> <span id="copy-text">Copier le prompt</span>
+        </button>
+        <script>
+        function copyPrompt() {{
+            const text = `{_prompt_escaped}`;
+            navigator.clipboard.writeText(text).then(() => {{
+                document.getElementById('copy-icon').textContent = '✓';
+                document.getElementById('copy-text').textContent = 'Copié !';
+                document.getElementById('copy-btn').style.borderColor = '#22c55e';
+                document.getElementById('copy-btn').style.color = '#22c55e';
+                setTimeout(() => {{
+                    document.getElementById('copy-icon').textContent = '📋';
+                    document.getElementById('copy-text').textContent = 'Copier le prompt';
+                    document.getElementById('copy-btn').style.borderColor = 'rgba(255,255,255,0.08)';
+                    document.getElementById('copy-btn').style.color = '#94a3b8';
+                }}, 2000);
+            }});
+        }}
+        </script>
+        """,
+        height=50,
+    )
 
     # Show optimize feedback inline (above the buttons)
     if "_optimize_result" in st.session_state:
@@ -198,15 +241,23 @@ if "last_generated" in st.session_state:
     if "_optimize_error" in st.session_state:
         st.error(st.session_state.pop("_optimize_error"))
 
-    st.markdown('<div style="margin-top: 24px"></div>', unsafe_allow_html=True)
-    col_save, col_opt, col_exp = st.columns(3)
+    # --- Action buttons row (compact, centered) ---
+    st.markdown(
+        '<div style="margin-top: 28px; margin-bottom: 8px; display:flex; align-items:center; gap:8px;">'
+        '<div style="height:1px; flex:1; background:var(--glass-border)"></div>'
+        '<span style="font-size:0.75rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em">Actions</span>'
+        '<div style="height:1px; flex:1; background:var(--glass-border)"></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    col_save, col_opt, col_exp = st.columns([1, 1, 1], gap="small")
 
     # --- Save to library ---
     with col_save:
-        with st.popover("💾 Sauvegarder"):
+        with st.popover("💾 Sauvegarder", use_container_width=True):
             save_title = st.text_input("Titre", value="Mon prompt audio")
             save_tags = st.text_input("Tags (séparés par des virgules)", value="")
-            if st.button("Confirmer la sauvegarde"):
+            if st.button("Confirmer la sauvegarde", use_container_width=True):
                 tags = [t.strip() for t in save_tags.split(",") if t.strip()]
                 try:
                     r = requests.post(
@@ -227,20 +278,20 @@ if "last_generated" in st.session_state:
 
     # --- Optimise ---
     with col_opt:
-        with st.popover("🔄 Optimiser"):
+        with st.popover("🔄 Optimiser", use_container_width=True):
             objective = st.selectbox(
                 "Objectif",
                 ["clarity", "precision", "creativity", "technical"],
                 key="opt_objective",
             )
-            if st.button("Lancer l'optimisation", key="btn_optimize"):
+            if st.button("Lancer l'optimisation", key="btn_optimize", use_container_width=True):
                 # Store the trigger in session_state — actual API call runs at top-level on next rerun
                 st.session_state["_run_optimize"] = objective
                 st.rerun()
 
     # --- Export ---
     with col_exp:
-        with st.popover("📤 Exporter"):
+        with st.popover("📤 Exporter", use_container_width=True):
             fmt = st.selectbox("Format", ["json", "markdown"], key="export_fmt")
 
             # Build file content eagerly so download_button triggers instantly

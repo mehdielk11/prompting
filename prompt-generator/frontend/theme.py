@@ -409,6 +409,31 @@ div[data-testid="stAlert"][data-baseweb="notification"]:has(div[role="alert"]) {
     border-radius: var(--radius) !important;
 }
 
+/* Popover trigger buttons — action row style */
+[data-testid="stPopover"] > button {
+    background: var(--glass) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--text) !important;
+    font-family: var(--font) !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 10px 16px !important;
+    min-height: 42px !important;
+    transition: var(--transition) !important;
+    cursor: pointer !important;
+    backdrop-filter: blur(8px) !important;
+}
+[data-testid="stPopover"] > button:hover {
+    border-color: var(--primary) !important;
+    background: rgba(99,102,241,0.08) !important;
+    color: var(--text) !important;
+}
+/* Hide the default chevron arrow on popover buttons */
+[data-testid="stPopover"] > button svg {
+    display: none !important;
+}
+
 /* Popover panel (the floating dropdown content) */
 [data-testid="stPopoverBody"],
 [data-testid="stPopoverBody"] > div {
@@ -1109,7 +1134,6 @@ def render_sidebar() -> None:
             unsafe_allow_html=True,
         )
         st.markdown('<div style="margin-top: 16px"></div>', unsafe_allow_html=True)
-        st.page_link("pages/home.py", label="Accueil", icon="🏠")
         st.page_link("pages/generate.py", label="Générer", icon="✨")
         st.page_link("pages/library.py", label="Bibliothèque", icon="📚")
 

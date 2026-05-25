@@ -27,16 +27,11 @@ if "api_base" not in st.session_state:
 # ---------------------------------------------------------------------------
 # Navigation — define pages and let Streamlit handle routing
 # ---------------------------------------------------------------------------
-home_page = st.Page(
-    "pages/home.py",
-    title="Accueil",
-    icon="🏠",
-    default=True,
-)
 generate_page = st.Page(
     "pages/generate.py",
     title="Générer",
     icon="✨",
+    default=True,
 )
 library_page = st.Page(
     "pages/library.py",
@@ -45,7 +40,7 @@ library_page = st.Page(
 )
 
 pg = st.navigation(
-    [home_page, generate_page, library_page],
+    [generate_page, library_page],
     position="hidden",  # we render nav ourselves in render_sidebar()
 )
 
