@@ -16,7 +16,6 @@ from frontend.theme import (
     score_ring,
     tag_badge,
     type_badge,
-    loading_skeleton_grid,
 )
 
 API_BASE = st.session_state.get("api_base", "http://localhost:8000")
@@ -37,13 +36,14 @@ st.markdown(
 # Helpers
 # ---------------------------------------------------------------------------
 
+@st.cache_data(ttl=10, show_spinner=False)
 def fetch_prompts(
     query: str = "",
     page: int = 1,
     type_filter: str = "",
     min_score: float | None = None,
 ) -> dict:
-    """Fetch prompts from the API (search or list)."""
+    """Fetch prompts from the API (search or list). Cached so filter changes are instant."""
     try:
         if query:
             resp = requests.get(
@@ -61,11 +61,9 @@ def fetch_prompts(
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.ConnectionError:
-        st.error("Impossible de joindre l'API.")
-        return {"items": [], "total": 0, "page": 1, "page_size": 12}
+        return {"items": [], "total": 0, "page": 1, "page_size": 12, "_error": "Impossible de joindre l'API."}
     except Exception as e:
-        st.error(f"Erreur : {e}")
-        return {"items": [], "total": 0, "page": 1, "page_size": 12}
+        return {"items": [], "total": 0, "page": 1, "page_size": 12, "_error": f"Erreur : {e}"}
 
 
 def _prompt_to_json_bytes(prompt: dict) -> bytes:
@@ -250,28 +248,20 @@ def library_content_fragment():
     )
 
     if should_fetch:
-        grid_placeholder = st.empty()
-        with grid_placeholder.container():
-            st.markdown(loading_skeleton_grid(count=6), unsafe_allow_html=True)
-        
-        # API call with minor buffer delay for premium visual shimmer transition
-        import time
-        start_time = time.time()
-        
+        # Cached fetch — first call hits the API, subsequent calls are instant
         data = fetch_prompts(
             query=search_query,
             page=st.session_state["lib_page"],
             type_filter=type_filter,
             min_score=min_score if min_score > 0 else None,
         )
-        
-        elapsed = time.time() - start_time
-        if elapsed < 0.25:
-            time.sleep(0.25 - elapsed)
-            
+
+        # Surface any error captured by the (cached) fetch helper
+        if data.get("_error"):
+            st.error(data["_error"])
+
         st.session_state["cached_prompts"] = data
         st.session_state["active_query_key"] = active_key
-        grid_placeholder.empty()
     else:
         data = st.session_state["cached_prompts"]
 
@@ -295,8 +285,9 @@ def library_content_fragment():
             if p_idx is not None:
                 items_list[p_idx] = new_prompt
                 st.toast("✅ Prompt dupliqué avec succès !")
-            # Invalidate the all-prompts cache so select-all sees the new item
+            # Invalidate caches so select-all and filtered views see the new item
             _fetch_all_prompts.clear()
+            fetch_prompts.clear()
         except Exception as e:
             # Cleanup placeholder on error
             p_id = f"temp_dup_{pending_dup_id}"
@@ -543,8 +534,9 @@ def library_content_fragment():
                                         r = requests.delete(f"{API_BASE}/api/library/{pid}", timeout=10)
                                         r.raise_for_status()
                                         st.toast("✅ Prompt supprimé !")
-                                        # Invalidate the all-prompts cache & remove from selection
+                                        # Invalidate caches & remove from selection
                                         _fetch_all_prompts.clear()
+                                        fetch_prompts.clear()
                                         st.session_state["selected_ids"].discard(pid)
                                     except Exception as e:
                                         st.session_state["cached_prompts"]["items"].insert(item_idx, item_to_delete)
