@@ -109,8 +109,29 @@ else:
     fragment_decorator = st.experimental_fragment
 
 
+def toggle_selection(pid: int | str):
+    """Callback to toggle selection in session state before script rerun."""
+    if "selected_ids" not in st.session_state:
+        st.session_state["selected_ids"] = set()
+    key = f"sel_{pid}"
+    if key in st.session_state:
+        if st.session_state[key]:
+            st.session_state["selected_ids"].add(pid)
+        else:
+            st.session_state["selected_ids"].discard(pid)
+
+
+def set_export_toast():
+    """Callback to set export success toast in session state safely."""
+    st.session_state["pending_toast"] = "✅ Prompt exporté !"
+
+
 @fragment_decorator
 def library_content_fragment():
+    # Render any pending toast messages from session state safely
+    if "pending_toast" in st.session_state:
+        st.toast(st.session_state.pop("pending_toast"))
+
     # ---------------------------------------------------------------------------
     # Filters
     # ---------------------------------------------------------------------------
@@ -322,16 +343,14 @@ def library_content_fragment():
 
                     # Row 1: Selection checkbox spanning full width
                     st.markdown('<div class="lib-card-sel" style="width: 100%;">', unsafe_allow_html=True)
-                    toggled = st.checkbox(
+                    st.checkbox(
                         sel_label,
                         key=f"sel_{pid}",
                         value=is_selected,
                         disabled=is_temp,
+                        on_change=toggle_selection,
+                        args=(pid,),
                     )
-                    if toggled:
-                        st.session_state["selected_ids"].add(pid)
-                    else:
-                        st.session_state["selected_ids"].discard(pid)
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     # Row 2: Action buttons row spanning full width
@@ -377,7 +396,7 @@ def library_content_fragment():
                             help="Exporter ce prompt en JSON",
                             use_container_width=True,
                             disabled=is_temp,
-                            on_click=lambda: st.toast("Prompt exporté !"),
+                            on_click=set_export_toast,
                         )
 
                     # Delete with confirmation popover

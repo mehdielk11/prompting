@@ -803,18 +803,23 @@ div[data-testid="stAlert"][data-baseweb="notification"]:has(div[role="alert"]) {
 }
 
 /* Delete popover button default state - solid red background */
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPopover"] > button {
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPopover"] button {
     background: var(--danger) !important;
     border-color: var(--danger) !important;
     color: #ffffff !important;
 }
 
 /* Delete popover button hover state */
-[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPopover"] > button:hover {
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPopover"] button:hover {
     background: #dc2626 !important;
     border-color: #dc2626 !important;
     color: #ffffff !important;
     box-shadow: 0 0 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Hide chevron/arrow in popover button */
+[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stPopover"] button svg {
+    display: none !important;
 }
 
 /* Checkbox re-style inside cards */
