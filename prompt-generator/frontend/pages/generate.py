@@ -1,4 +1,4 @@
-"""Page 1 — Generate a professional audio prompt."""
+"""Generate page — create a professional audio prompt."""
 
 from __future__ import annotations
 
@@ -9,28 +9,16 @@ import requests
 import streamlit as st
 
 from frontend.theme import (
-    inject_theme,
     gradient_text,
-    hero_section,
     gradient_divider,
+    hero_section,
     prompt_display,
     score_ring,
-    type_badge,
     section_header,
-    render_sidebar,
+    type_badge,
 )
 
 API_BASE = st.session_state.get("api_base", "http://localhost:8000")
-
-st.set_page_config(page_title="Générer un Prompt", page_icon="✨", layout="wide")
-
-# Inject the complete CSS theme
-inject_theme()
-
-# ---------------------------------------------------------------------------
-# Sidebar branding
-# ---------------------------------------------------------------------------
-render_sidebar()
 
 # ---------------------------------------------------------------------------
 # Hero section
@@ -295,4 +283,3 @@ if "last_generated" in st.session_state:
         for i, variant in enumerate(data.get("variants", []), 1):
             st.markdown(f"**Variante {i}**")
             st.markdown(prompt_display(variant), unsafe_allow_html=True)
-

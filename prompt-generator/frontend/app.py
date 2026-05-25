@@ -1,4 +1,8 @@
-"""Streamlit entry point — configures the app and shared API client."""
+"""Streamlit entry point — single shell with st.navigation().
+
+Theme + sidebar are injected ONCE here and never re-rendered on page
+changes, eliminating the sidebar flicker / re-render on navigation.
+"""
 
 import os
 
@@ -20,16 +24,40 @@ st.set_page_config(
 if "api_base" not in st.session_state:
     st.session_state["api_base"] = API_BASE
 
-st.title("🎙️ Générateur de Prompts Audio")
-st.markdown(
-    """
-    Bienvenue sur la plateforme de génération automatique de prompts professionnels pour l'audio.
-
-    Utilisez le menu de gauche pour naviguer entre les pages :
-    - **Générer** — créez un prompt à partir d'une description libre
-    - **Bibliothèque** — gérez vos prompts sauvegardés
-    - **Analytics** — visualisez vos statistiques
-    """
+# ---------------------------------------------------------------------------
+# Navigation — define pages and let Streamlit handle routing
+# ---------------------------------------------------------------------------
+home_page = st.Page(
+    "pages/home.py",
+    title="Accueil",
+    icon="🏠",
+    default=True,
+)
+generate_page = st.Page(
+    "pages/generate.py",
+    title="Générer",
+    icon="✨",
+)
+library_page = st.Page(
+    "pages/library.py",
+    title="Bibliothèque",
+    icon="📚",
 )
 
-st.info(f"API connectée sur : `{API_BASE}`")
+pg = st.navigation(
+    [home_page, generate_page, library_page],
+    position="hidden",  # we render nav ourselves in render_sidebar()
+)
+
+# ---------------------------------------------------------------------------
+# Theme + sidebar — injected ONCE, never re-runs on page navigation
+# ---------------------------------------------------------------------------
+from frontend.theme import (  # noqa: E402
+    inject_theme,
+    render_sidebar,
+)
+
+inject_theme()
+render_sidebar()
+
+pg.run()
