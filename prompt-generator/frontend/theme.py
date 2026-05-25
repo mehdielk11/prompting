@@ -260,6 +260,11 @@ p, label, li, td, th,
     border-radius: var(--radius-sm) !important;
     color: var(--text) !important;
     font-family: var(--font) !important;
+    cursor: pointer !important;
+}
+[data-testid="stSelectbox"] input {
+    pointer-events: none !important;
+    caret-color: transparent !important;
 }
 [data-testid="stSelectbox"] svg {
     fill: var(--text-sec) !important;
@@ -402,6 +407,19 @@ div[data-testid="stAlert"][data-baseweb="notification"]:has(div[role="alert"]) {
     background: var(--surface) !important;
     border: 1px solid var(--glass-border) !important;
     border-radius: var(--radius) !important;
+}
+
+/* Popover panel (the floating dropdown content) */
+[data-testid="stPopoverBody"],
+[data-testid="stPopoverBody"] > div {
+    background: var(--surface) !important;
+}
+/* Ensure inputs & buttons inside popovers share the same surface color */
+[data-testid="stPopoverBody"] [data-testid="stSelectbox"] > div > div,
+[data-testid="stPopoverBody"] .stDownloadButton > button,
+[data-testid="stPopoverBody"] .stButton > button {
+    background: var(--surface) !important;
+    border: 1px solid var(--glass-border) !important;
 }
 
 /* ── Tabs ─────────────────────────────────────────────────────────── */
@@ -1018,9 +1036,9 @@ def score_ring(score: float, size: int = 80) -> str:
         color = COLORS["warning"]
     else:
         color = COLORS["danger"]
-    font_size = size * 0.22
+    font_size = size * 0.28
     return (
-        f'<div class="score-ring-container" style="width:{size}px;height:{size}px">'
+        f'<div class="score-ring-container" style="position:relative;width:{size}px;height:{size}px">'
         f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">'
         f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="var(--glass-border)" stroke-width="4" />'
         f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{color}" stroke-width="4" '
@@ -1028,7 +1046,7 @@ def score_ring(score: float, size: int = 80) -> str:
         f'stroke-linecap="round" transform="rotate(-90 {cx} {cy})" '
         f'style="transition: stroke-dashoffset 0.6s ease-out" />'
         f'</svg>'
-        f'<span class="score-label" style="font-size:{font_size}px">{score:.0f}</span>'
+        f'<span class="score-label" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:{font_size}px;font-weight:700;color:{color}">{score:.0f}</span>'
         f'</div>'
     )
 
