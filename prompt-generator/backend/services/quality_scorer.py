@@ -7,11 +7,11 @@ Also handles prompt optimisation via a diagnostic-driven feedback loop.
 from __future__ import annotations
 
 import difflib
-import json
 import re
 
 from backend.models.schemas import DimensionScores, OptimizeResponse, ScoreResponse
 from backend.services.hf_client import get_hf_client
+from backend.services.json_utils import parse_json_from_response
 
 # Dimension weights must sum to 1.0
 _WEIGHTS: dict[str, float] = {
@@ -86,21 +86,8 @@ This is unacceptable. You must do substantially better this time.
 
 
 def _parse_json_from_response(text: str) -> dict:
-    """Extract the first JSON object from a model response string.
-
-    Args:
-        text: Raw model output that may contain surrounding text.
-
-    Returns:
-        Parsed dict.
-
-    Raises:
-        ValueError: If no valid JSON object is found.
-    """
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError(f"No JSON object found in model response: {text[:200]}")
-    return json.loads(match.group())
+    """Backwards-compatible alias for :func:`parse_json_from_response`."""
+    return parse_json_from_response(text)
 
 
 def _compute_diff_changes(original: str, optimized: str) -> list[str]:
@@ -280,7 +267,7 @@ def optimize_prompt(raw_prompt: str, objective: str, audio_type: str = "tts") ->
         raw = client.generate_text(
             system_prompt=system_prompt,
             user_prompt=user_msg,
-            max_new_tokens=900,
+            max_new_tokens=1400,
             temperature=0.65,
         )
 

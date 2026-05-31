@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import json
-import re
 from pathlib import Path
 
 from backend.models.schemas import GenerateResponse
 from backend.services.hf_client import get_hf_client
+from backend.services.json_utils import parse_json_from_response
 from backend.services.quality_scorer import score_prompt
 
 _TEMPLATES_DIR = Path(__file__).parent.parent.parent / "prompts" / "templates"
@@ -96,21 +95,8 @@ def _coerce_to_str(value: object) -> str:
 
 
 def _parse_json_from_response(text: str) -> dict:
-    """Extract the first JSON object from a model response.
-
-    Args:
-        text: Raw model output.
-
-    Returns:
-        Parsed dict.
-
-    Raises:
-        ValueError: If no valid JSON object is found.
-    """
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError(f"No JSON object found in model response: {text[:200]}")
-    return json.loads(match.group())
+    """Backwards-compatible alias for :func:`parse_json_from_response`."""
+    return parse_json_from_response(text)
 
 
 def generate_prompt(
@@ -145,7 +131,7 @@ def generate_prompt(
     raw = client.generate_text(
         system_prompt=system_prompt,
         user_prompt=user_msg,
-        max_new_tokens=700,
+        max_new_tokens=1200,
         temperature=0.7,
     )
 
